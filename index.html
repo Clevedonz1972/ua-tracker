@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Matt's UA & BP Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f0f4f8; color: #333; }
+    h1 { color: #1A237E; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input, textarea, button { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; }
+    input[type="checkbox"] { width: auto; margin-right: 10px; }
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px; }
+    button { background: #1A237E; color: white; font-weight: bold; cursor: pointer; margin-top: 20px; }
+    .log-entry { background: white; border-radius: 8px; padding: 10px; margin-top: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    canvas { max-width: 100%; margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <h1>Matt's UA & BP Tracker</h1>
+  <label for="date">Date & Time</label>
+  <input type="datetime-local" id="date" />
+
+  <label for="ua">Uric Acid (µmol/L)</label>
+  <input type="number" id="ua" placeholder="e.g. 575" />
+
+  <label for="bp">Blood Pressure (mmHg)</label>
+  <input type="text" id="bp" placeholder="e.g. 135/85" />
+
+  <label for="hydration">Hydration (litres)</label>
+  <input type="number" step="0.1" id="hydration" placeholder="e.g. 2.5" />
+
+  <label>Supplements / Medication Taken</label>
+  <div class="checkbox-group">
+    <label><input type="checkbox" id="elvanse" />Elvanse</label>
+    <label><input type="checkbox" id="vitc" />Vitamin C</label>
+    <label><input type="checkbox" id="quercetin" />Quercetin</label>
+    <label><input type="checkbox" id="nmn" />NMN</label>
+    <label><input type="checkbox" id="omega3" />Omega 3</label>
+    <label><input type="checkbox" id="magnesium" />Magnesium</label>
+    <label><input type="checkbox" id="vitd" />Vitamin D</label>
+    <label><input type="checkbox" id="allopurinol" />Allopurinol</label>
+  </div>
+
+  <label for="symptoms">Notes / Symptoms</label>
+  <textarea id="symptoms" placeholder="e.g. Flare-up in left foot, felt tired"></textarea>
+
+  <button onclick="saveEntry()">Save Entry</button>
+  <button onclick="exportCSV()">Export CSV</button>
+
+  <h2>Log History</h2>
+  <div id="log"></div>
+
+  <h2>Trends</h2>
+  <canvas id="uaChart"></canvas>
+  <canvas id="bpChart"></canvas>
+
+  <script>
+    const saveEntry = () => {
+      const entry = {
+        date: document.getElementById('date').value,
+        ua: document.getElementById('ua').value,
+        bp: document.getElementById('bp').value,
+        hydration: document.getElementById('hydration').value,
+        supplements: [
+          document.getElementById('elvanse').checked ? 'Elvanse' : '',
+          document.getElementById('vitc').checked ? 'Vitamin C' : '',
+          document.getElementById('quercetin').checked ? 'Quercetin' : '',
+          document.getElementById('nmn').checked ? 'NMN' : '',
+          document.getElementById('omega3').checked ? 'Omega 3' : '',
+          document.getElementById('magnesium').checked ? 'Magnesium' : '',
+          document.getElementById('vitd').checked ? 'Vitamin D' : '',
+          document.getElementById('allopurinol').checked ? 'Allopurinol' : ''
+        ].filter(Boolean).join(', '),
+        symptoms: document.getElementById('symptoms').value
+      };
+
+      const logs = JSON.parse(localStorage.getItem('bpua-logs')) || [];
+      logs.unshift(entry);
+      localStorage.setItem('bpua-logs', JSON.stringify(logs));
+      displayLogs();
+      drawCharts();
+    };
+
+    const displayLogs = () => {
+      const logs = JSON.parse(localStorage.getItem('bpua-logs')) || [];
+      const logDiv = document.getElementById('log');
+      logDiv.innerHTML = logs.map(log => `
+        <div class="log-entry">
+          <strong>Date:</strong> ${log.date}<br />
+          <strong>UA:</strong> ${log.ua} µmol/L<br />
+          <strong>BP:</strong> ${log.bp}<br />
+          <strong>Hydration:</strong> ${log.hydration} L<br />
+          <strong>Supplements:</strong> ${log.supplements}<br />
+          <strong>Symptoms:</strong> ${log.symptoms}
+        </div>
+      `).join('');
+    };
+
+    const exportCSV = () => {
+      const logs = JSON.parse(localStorage.getItem('bpua-logs')) || [];
+      if (logs.length === 0) return alert("No data to export.");
+
+      const headers = ["Date", "Uric Acid", "Blood Pressure", "Hydration", "Supplements", "Symptoms"];
+      const rows = logs.map(log => [
+        log.date, log.ua, log.bp, log.hydration, `"${log.supplements}"`, `"${log.symptoms}"`
+      ]);
+
+      let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" +
+                       rows.map(row => row.join(",")).join("\n");
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "ua_bp_log.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    const drawCharts = () => {
+      const logs = JSON.parse(localStorage.getItem('bpua-logs')) || [];
+      const labels = logs.map(log => log.date).reverse();
+      const uaData = logs.map(log => Number(log.ua)).reverse();
+      const systolic = logs.map(log => parseInt(log.bp.split('/')[0] || 0)).reverse();
+      const diastolic = logs.map(log => parseInt(log.bp.split('/')[1] || 0)).reverse();
+
+      const uaCtx = document.getElementById('uaChart').getContext('2d');
+      new Chart(uaCtx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Uric Acid (µmol/L)',
+            data: uaData,
+            borderColor: 'teal',
+            fill: false
+          }]
+        }
+      });
+
+      const bpCtx = document.getElementById('bpChart').getContext('2d');
+      new Chart(bpCtx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Systolic',
+              data: systolic,
+              borderColor: 'red',
+              fill: false
+            },
+            {
+              label: 'Diastolic',
+              data: diastolic,
+              borderColor: 'blue',
+              fill: false
+            }
+          ]
+        }
+      });
+    };
+
+    window.onload = () => {
+      displayLogs();
+      drawCharts();
+    };
+  </script>
+</body>
+</html>
