@@ -1,0 +1,113 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Matt's Health Tracker v4.1</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f4f8; margin: 0; padding: 0; }
+    nav { background: #1A237E; color: white; padding: 1em; display: flex; justify-content: space-around; }
+    nav button { background: none; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 1em; }
+    .container { padding: 20px; display: none; }
+    .active { display: block; }
+    h1 { color: #1A237E; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input, select, textarea, button { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; }
+    .checkbox-group { display: flex; flex-direction: column; gap: 10px; margin-top: 5px; }
+    .checkbox-group label { display: flex; flex-direction: column; font-weight: normal; }
+    canvas { max-width: 100%; margin-top: 20px; }
+    .log-entry { background: white; border-radius: 8px; padding: 10px; margin-top: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .supplement-time { font-style: italic; font-size: 0.9em; color: #333; margin-top: 2px; }
+    .warning-note { color: #c62828; font-weight: bold; font-size: 0.9em; margin-top: 5px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <button onclick="showTab('log')">Daily Log</button>
+    <button onclick="showTab('urine')">Urine Test</button>
+    <button onclick="showTab('charts')">Trends</button>
+    <button onclick="showTab('export')">Export</button>
+  </nav>
+
+  <div class="container active" id="log">
+    <h1>Daily Health Log</h1>
+    <label>Date & Time</label>
+    <input type="datetime-local" id="date" />
+
+    <label>Uric Acid (µmol/L)</label>
+    <input type="number" id="ua" />
+    <div class="supplement-time">🕗 Best in the morning before food</div>
+
+    <label>Blood Pressure (mmHg)</label>
+    <input type="text" id="bp" placeholder="e.g. 135/85" />
+    <div class="supplement-time">🕗 Best taken seated, morning & evening</div>
+
+    <label>Hydration (litres)</label>
+    <input type="number" step="0.1" id="hydration" />
+
+    <label>Supplements & Meds</label>
+    <div class="checkbox-group">
+      <label><input type="checkbox" id="elvanse"> Elvanse
+        <span class="supplement-time">Morning – empty stomach</span>
+      </label>
+      <label><input type="checkbox" id="nmn"> NMN
+        <span class="supplement-time">Morning – after Elvanse</span>
+      </label>
+      <label><input type="checkbox" id="quercetin"> Quercetin
+        <span class="supplement-time">Morning – with or after NMN</span>
+      </label>
+      <label><input type="checkbox" id="vitc"> Vitamin C
+        <span class="supplement-time">Mid-morning – at least 1–2 hrs after Elvanse</span>
+        <div class="warning-note">⚠️ Note: Can reduce Elvanse effectiveness if taken too close</div>
+      </label>
+      <label><input type="checkbox" id="omega3"> Omega 3
+        <span class="supplement-time">Midday – with food (fat helps absorption)</span>
+      </label>
+      <label><input type="checkbox" id="magnesium"> Magnesium
+        <span class="supplement-time">Midday – with lunch</span>
+      </label>
+      <label><input type="checkbox" id="vitd"> Vitamin D
+        <span class="supplement-time">Evening – with food (can be morning too)</span>
+      </label>
+      <label><input type="checkbox" id="allopurinol"> Allopurinol
+        <span class="supplement-time">Evening – or as prescribed</span>
+      </label>
+    </div>
+
+    <label>Exercise Type</label>
+    <select id="exercise">
+      <option value="">-- Select --</option>
+      <option>Walking</option>
+      <option>Gym</option>
+      <option>Ruck march</option>
+      <option>Yoga/stretch</option>
+      <option>Other</option>
+    </select>
+
+    <label>Exertion Level</label>
+    <select id="exertion">
+      <option value="">-- Select --</option>
+      <option>Low</option>
+      <option>Moderate</option>
+      <option>High</option>
+      <option>Maxed Out</option>
+    </select>
+
+    <label>How’s the body feeling?</label>
+    <select id="bodyFeel">
+      <option value="">-- Select --</option>
+      <option>Good</option>
+      <option>Bit achey</option>
+      <option>Flare-up coming</option>
+      <option>In pain</option>
+    </select>
+
+    <label>Notes</label>
+    <textarea id="symptoms"></textarea>
+
+    <button onclick="saveEntry()">Save Entry</button>
+  </div>
+</body>
+</html>
